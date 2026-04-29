@@ -1,1 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>AI Assistant - Free & Local</title>
+    <style>
+        /* (Same beautiful dark theme as before, keep it) */
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(145deg, #1e2a3a 0%, #0f1724 100%);
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .chat-container {
+            width: 100%;
+            max-width: 850px;
+            height: 90vh;
+            background: rgba(30, 40, 50, 0.7);
+            backdrop-filter: blur(12px);
+            border-radius: 32px;
+            box-shadow: 0 25px 45px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .header {
+            padding: 20px 24px;
+            background: rgba(0,0,0,0.3);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 1.6rem;
+            font-weight: 600;
+            background: linear-gradient(135deg, #a5f3fc, #c084fc);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        .header p {
+            margin: 8px 0 0;
+            font-size: 0.8rem;
+            color: #9ca3af;
+        }
+        .status {
+            margin-top: 8px;
+            font-size: 0.75rem;
+            color: #cbd5e1;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 10px;
+            background-color: #f97316;
+            display: inline-block;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% { opacity: 0.3; transform: scale(0.8);}
+            100% { opacity: 1; transform: scale(1);}
+        }
+        .status-dot.ready {
+            background-color: #22c55e;
+            animation: none;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: #334155;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 6px;
+        }
+        .progress-fill {
+            width: 0%;
+            height: 100%;
+            background: #3b82f6;
+            transition: width 0.3s;
+        }
+        .messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .message {
+            display: flex;
+            gap: 12px;
+            animation: fadeIn 0.2s ease;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px);}
+            to { opacity: 1; transform: translateY(0);}
+        }
+        .message.user { justify-content: flex-end; }
+        .avatar {
+            width: 36px;
+            height: 36px;
+            background: #2d3a44;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            flex-shrink: 0;
+        }
+        .message.user .avatar { background: #3b4e5c; order: 2; }
+        .bubble {
+            max-width: 70%;
+            padding: 12px 18px;
+            border-radius: 24px;
+            background: #1e2f3c;
+            color: #e2e8f0;
+            font-size: 0.95rem;
+            line-height: 1.45;
+            word-wrap: break-word;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        .message.user .bubble { background: #2563eb; color: white; border-bottom-right-radius: 6px; }
+        .message.bot .bubble { background: #1e2937; border-bottom-left-radius: 6px; }
+        .loading-indicator {
+            padding: 12px 18px;
+            background: #1e2937;
+            border-radius: 24px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            width: fit-content;
+            font-size: 0.85rem;
+            color: #94a3b8;
+        }
+        .dot-floating { display: flex; gap: 4px; }
+        .dot-floating span {
+            width: 8px;
+            height: 8px;
+            background: #94a3b8;
+            border-radius: 50%;
+            animation: bounce 1.4s infinite ease-in-out both;
+        }
+        .dot-floating span:nth-child(1) { animation-delay: -0.32s; }
+        .dot-floating span:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
+        .input-area {
+            padding: 20px;
+            background: rgba(0,0,0,0.2);
+            border-top: 1px solid rgba(255,255,255,0.05);
+        }
+        .input-wrapper {
+            display: flex;
+            gap: 12px;
+            background: #0f1724;
+            border-radius: 48px;
+            padding: 6px 6px 6px 20px;
+            border: 1px solid #334155;
+        }
+        .input-wrapper:focus-within { border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59,130,246,0.3); }
+        input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            padding: 12px 0;
+            color: #f1f5f9;
+            font-size: 1rem;
+            outline: none;
+        }
+        input::placeholder { color: #5b6e8c; }
+        button {
+            background: #3b82f6;
+            border: none;
+            border-radius: 40px;
+            padding: 0 24px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+            font-size: 0.9rem;
+        }
+        button:hover { background: #2563eb; transform: scale(0.96); }
+        button:disabled { background: #475569; cursor: not-allowed; transform: none; }
+        .clear-btn { background: #334155; margin-left: 8px; padding: 0 18px; }
+        .clear-btn:hover { background: #475569; }
+        footer {
+            font-size: 0.7rem;
+            text-align: center;
+            padding: 8px;
+            color: #5b6e8c;
+        }
+        @media (max-width: 600px) {
+            .bubble { max-width: 85%; }
+            .header h1 { font-size: 1.3rem; }
+        }
+    </style>
+</head>
+<body>
+<div class="chat-container">
+    <div class="header">
+        <h1>🧠 Local AI Assistant</h1>
+        <p>Private · No tracking · Runs in your browser</p>
+        <div class="status" id="statusArea">
+            <span class="status-dot" id="statusDot"></span>
+            <span id="statusText">Loading AI model (first time may take 30s)...</span>
+        </div>
+        <div id="progressContainer" class="progress-bar" style="display: none;">
+            <div id="progressFill" class="progress-fill"></div>
+        </div>
+    </div>
 
+    <div class="messages" id="messagesContainer">
+        <div class="message bot">
+            <div class="avatar">🤖</div>
+            <div class="bubble">👋 Hello! I'm an AI that runs locally on your device.<br>Your data never leaves your browser. Ask me anything!<br><span style="font-size:0.7rem; opacity:0.7;">model: LaMini-Flan-T5-248M (lightweight but smart)</span></div>
+        </div>
+    </div>
+
+    <div class="input-area">
+        <div class="input-wrapper">
+            <input type="text" id="userInput" placeholder="Type your message..." autofocus>
+            <button id="sendBtn" disabled>Send</button>
+            <button id="clearBtn" class="clear-btn">Clear chat</button>
+        </div>
+        <footer>🔒 Fully offline after first download · Model size ~250MB (cached by your browser)</footer>
+    </div>
+</div>
+
+<script type="importmap">
+    {
+        "imports": {
+            "@huggingface/transformers": "https://unpkg.com/@huggingface/transformers@3.0.2/dist/transformers.min.js"
+        }
+    }
+</script>
+
+<script type="module">
+    import { pipeline, env } from '@huggingface/transformers';
+
+    env.allowLocalModels = true;
+    env.useBrowserCache = true;
+
+    const messagesDiv = document.getElementById('messagesContainer');
+    const userInput = document.getElementById('userInput');
+    const sendBtn = document.getElementById('sendBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const statusDot = document.getElementById('statusDot');
+    const statusTextSpan = document.getElementById('statusText');
+    const progressContainer = document.getElementById('progressContainer');
+    const progressFill = document.getElementById('progressFill');
+
+    let generator = null;
+    let isProcessing = false;
+
+    function setStatus(loading, text, isError = false, progress = null) {
+        statusTextSpan.textContent = text;
+        if (!loading) {
+            statusDot.classList.add('ready');
+            statusDot.style.backgroundColor = '#22c55e';
+            progressContainer.style.display = 'none';
+        } else {
+            statusDot.classList.remove('ready');
+            statusDot.style.backgroundColor = isError ? '#ef4444' : '#f97316';
+            if (progress !== null && progress >= 0) {
+                progressContainer.style.display = 'block';
+                progressFill.style.width = `${progress}%`;
+            } else {
+                progressContainer.style.display = 'none';
+            }
+        }
+    }
+
+    function addMessage(role, content) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${role}`;
+        const avatar = role === 'user' ? '👤' : '🤖';
+        messageDiv.innerHTML = `
+            <div class="avatar">${avatar}</div>
+            <div class="bubble">${escapeHtml(content)}</div>
+        `;
+        messagesDiv.appendChild(messageDiv);
+        messageDiv.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    }
+
+    function escapeHtml(str) {
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+
+    let loadingElement = null;
+    function showLoading() {
+        if (loadingElement) loadingElement.remove();
+        const loaderDiv = document.createElement('div');
+        loaderDiv.className = 'message bot';
+        loaderDiv.id = 'loadingMsg';
+        loaderDiv.innerHTML = `
+            <div class="avatar">🤖</div>
+            <div class="loading-indicator">
+                <span>thinking</span>
+                <div class="dot-floating"><span></span><span></span><span></span></div>
+            </div>
+        `;
+        messagesDiv.appendChild(loaderDiv);
+        loaderDiv.scrollIntoView({ behavior: 'smooth', block: 'end' });
+        loadingElement = loaderDiv;
+    }
+
+    function hideLoading() {
+        if (loadingElement) {
+            loadingElement.remove();
+            loadingElement = null;
+        }
+    }
+
+    async function loadModel() {
+        try {
+            setStatus(true, "Downloading AI model (first time ~250MB)... please wait.", false, 0);
+            generator = await pipeline('text2text-generation', 'Xenova/LaMini-Flan-T5-248M', {
+                progress_callback: (progress) => {
+                    if (progress.status === 'downloading') {
+                        const percent = progress.progress ? Math.round(progress.progress * 100) : 0;
+                        setStatus(true, `Downloading model: ${percent}%`, false, percent);
+                    }
+                }
+            });
+            setStatus(false, "✅ Model ready — start chatting!");
+            sendBtn.disabled = false;
+            userInput.disabled = false;
+            userInput.focus();
+        } catch (err) {
+            console.error(err);
+            setStatus(true, "❌ Failed to load model. Refresh and try again.", true);
+            sendBtn.disabled = true;
+        }
+    }
+
+    async function generateResponse(userMessage) {
+        if (!generator) return "Model not ready yet. Reload the page.";
+        try {
+            const prompt = `Answer concisely and helpfully: ${userMessage}`;
+            const output = await generator(prompt, {
+                max_new_tokens: 128,
+                temperature: 0.7,
+                repetition_penalty: 1.1,
+                do_sample: true,
+            });
+            let reply = output[0]?.generated_text || "Sorry, no response.";
+            reply = reply.replace(/^Assistant:\s*/i, '').trim();
+            if (!reply) reply = "Hmm, I'm not sure.";
+            return reply;
+        } catch (err) {
+            console.error(err);
+            return "Error generating response. Please try again.";
+        }
+    }
+
+    async function sendMessage() {
+        if (isProcessing || !generator) return;
+        const text = userInput.value.trim();
+        if (!text) return;
+
+        isProcessing = true;
+        sendBtn.disabled = true;
+        userInput.disabled = true;
+
+        addMessage('user', text);
+        userInput.value = '';
+        showLoading();
+
+        const reply = await generateResponse(text);
+        hideLoading();
+        addMessage('bot', reply);
+
+        isProcessing = false;
+        sendBtn.disabled = false;
+        userInput.disabled = false;
+        userInput.focus();
+    }
+
+    function clearChat() {
+        while (messagesDiv.children.length > 1) {
+            messagesDiv.removeChild(messagesDiv.lastChild);
+        }
+        addMessage('bot', '🧹 Conversation cleared. Ask me anything!');
+    }
+
+    sendBtn.addEventListener('click', sendMessage);
+    clearBtn.addEventListener('click', clearChat);
+    userInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter' && !isProcessing && generator) sendMessage();
+    });
+
+    loadModel();
+</script>
+</body>
+</html>
