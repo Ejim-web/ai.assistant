@@ -1,14 +1,12 @@
 const express = require('express');
 const app = express();
 
-// Enable CORS for all routes
+// CORS middleware – allows your GitHub Pages site to call this API
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
   res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  if (req.method === 'OPTIONS') {
-    return res.sendStatus(200);
-  }
+  if (req.method === 'OPTIONS') return res.sendStatus(200);
   next();
 });
 
@@ -35,7 +33,7 @@ app.post('/chat', async (req, res) => {
     const response = await fetch(apiUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
-      body: JSON.stringify(body),
+      body: JSON.stringify(body)
     });
     const data = await response.json();
     const reply = data.choices[0].message.content;
@@ -45,4 +43,4 @@ app.post('/chat', async (req, res) => {
   }
 });
 
-app.listen(3000, () => console.log('Proxy running on port 3000 with CORS enabled'));
+app.listen(3000, () => console.log('Proxy running with CORS enabled'));
