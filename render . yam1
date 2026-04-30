@@ -1,1 +1,13 @@
-
+services:
+  - type: web
+    name: brain-api
+    runtime: node
+    repo: https://github.com/Ejim-web/ai_assistant
+    branch: main
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: DEEPSEEK_KEY
+        sync: false
+      - key: OPENAI_KEY
+        sync: false
