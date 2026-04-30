@@ -1,5 +1,17 @@
 const express = require('express');
 const app = express();
+
+// Enable CORS for all routes
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  next();
+});
+
 app.use(express.json());
 
 const DEEPSEEK_KEY = process.env.DEEPSEEK_KEY;
@@ -33,4 +45,4 @@ app.post('/chat', async (req, res) => {
   }
 });
 
-app.listen(3000, () => console.log('Proxy running on port 3000'));
+app.listen(3000, () => console.log('Proxy running on port 3000 with CORS enabled'));
